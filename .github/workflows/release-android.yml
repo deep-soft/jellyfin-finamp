@@ -1,0 +1,48 @@
+name: Build - Android
+
+on:
+  workflow_dispatch:
+#  pull_request:
+#  push:
+
+env:
+  PRG_NAME: "finamp"
+
+jobs:
+  build-android:
+    name: Build for Android
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout source code
+      uses: deep-soft/checkout@v3
+
+    - name: Setup Java
+      uses: actions/setup-java@v2
+      with:
+        distribution: 'zulu'
+        java-version: '17'
+
+    - name: Settup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        channel: 'stable'
+    - run: flutter pub get
+    # - run: flutter build apk --debug
+    - name: Flutter Build
+      run: flutter build apk --release
+
+    - name: Upload Artifact apk
+      uses: deep-soft/upload-artifact@v3
+      with:
+        name: upload-artifact-android
+        path: |
+          #./android/./app/${{ env.PRG_NAME }}/build/outputs/apk/
+          ./android/./app/build/outputs/apk/
+
+    - name: Upload Artifact android all
+      uses: deep-soft/upload-artifact@v3
+      with:
+        name: upload-artifact-android-all
+        path: |
+          #./android/./app/${{ env.PRG_NAME }}/build/outputs/apk/
+          ./android/
