@@ -1,8 +1,9 @@
 name: Build
 
 on:
-  pull_request:
-  push:
+  workflow_dispatch:
+#  pull_request:
+#  push:
 
 jobs:
   build-android:
@@ -18,7 +19,9 @@ jobs:
       with:
         channel: 'stable'
     - run: flutter pub get
-    - run: flutter build apk --debug
+    # - run: flutter build apk --debug
+    - run: flutter build apk --release
+    
   build-ios:
     name: Build for iOS
     runs-on: macos-latest
