@@ -32,17 +32,19 @@ jobs:
       run: flutter build apk --release
 
     - name: Upload Artifact apk
+      continue-on-error: true
       uses: deep-soft/upload-artifact@v3
       with:
         name: upload-artifact-android
         path: |
           #./android/./app/${{ env.PRG_NAME }}/build/outputs/apk/
-          ./android/./app/build/outputs/apk/
+          android/./app/build/outputs/apk/
 
     - name: Upload Artifact android all
+      continue-on-error: true    
       uses: deep-soft/upload-artifact@v3
       with:
         name: upload-artifact-android-all
         path: |
           #./android/./app/${{ env.PRG_NAME }}/build/outputs/apk/
-          ./android/
+          android/
