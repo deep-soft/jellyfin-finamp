@@ -18,7 +18,7 @@ env:
   PRG_NAME: "finamp"
   PRG_VERSION: "v0.6.15"
   TAG_NAME: "finamp"
-  TAG_VERSION: "vv0.6.15"
+  TAG_VERSION: "v0.6.15"
   TAG_BUILD: "-b"
   TAG_REF: "0000000"
   ANDROID_SIGNING_KEY: '${{ secrets.ANDROID_SIGNING_KEY }}'
