@@ -327,12 +327,16 @@ class DownloadsHelper {
       }
 
       if (deletedFor != null) {
-        final downloadedImage = _downloadedImagesBox.get(deletedFor);
+        final parentItem = getDownloadedParent(deletedFor)?.item;
 
-        downloadedImage?.requiredBy.remove(deletedFor);
+        if (parentItem != null) {
+          final downloadedImage = getDownloadedImage(parentItem);
 
-        if (downloadedImage != null) {
-          deleteDownloadFutures.add(_handleDeleteImage(downloadedImage));
+          downloadedImage?.requiredBy.remove(deletedFor);
+
+          if (downloadedImage != null) {
+            deleteDownloadFutures.add(_handleDeleteImage(downloadedImage));
+          }
         }
       }
 
@@ -883,6 +887,26 @@ class DownloadsHelper {
     final imagesToDelete = downloadedImages
         .where((element) => !imagesToKeep.contains(element))
         .toList();
+
+    for (final image in imagesToDelete) {
+      final song = getDownloadedSong(image.requiredBy.first);
+
+      if (song != null) {
+        final blurHash = song.song.blurHash;
+
+        imageMap[blurHash]?.requiredBy.addAll(image.requiredBy);
+      }
+    }
+
+    // Go through each requiredBy and remove duplicates
+    for (final imageEntry in imageMap.entries) {
+      final image = imageEntry.value;
+
+      image.requiredBy = image.requiredBy.toSet().toList();
+      _downloadsLogger.warning(image.requiredBy);
+
+      imageMap[imageEntry.key] = image;
+    }
 
     // Sanity check to make sure we haven't double counted/missed an image.
     final imagesCount = imagesToKeep.length + imagesToDelete.length;
