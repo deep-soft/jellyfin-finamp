@@ -898,12 +898,15 @@ class DownloadsHelper {
       }
     }
 
-    // Go through each requiredBy and remove duplicates
+    // Go through each requiredBy and remove duplicates. We also set the image's
+    // id to the blurhash.
     for (final imageEntry in imageMap.entries) {
       final image = imageEntry.value;
 
       image.requiredBy = image.requiredBy.toSet().toList();
       _downloadsLogger.warning(image.requiredBy);
+
+      image.id = imageEntry.key;
 
       imageMap[imageEntry.key] = image;
     }
@@ -931,6 +934,49 @@ class DownloadsHelper {
 
     _downloadsLogger.info("Image blurhash migration complete.");
     _downloadsLogger.info("${imagesToDelete.length} duplicate images deleted.");
+  }
+
+  /// Fixes DownloadedImage IDs created by the migration in 0.6.15. In it,
+  /// migrated images did not have their IDs set to the blurhash. This function
+  /// sets every image's ID to its blurhash. This function should only be run
+  /// once, only when required (i.e., upgrading from 0.6.15). In theory, running
+  /// it on an unaffected database should do nothing, but there's no point doing
+  /// redundant migrations.
+  Future<void> fixBlurhashMigrationIds() async {
+    _downloadsLogger.info("Fixing blurhash migration IDs from 0.6.15");
+
+    final List<DownloadedImage> images = [];
+
+    for (final image in downloadedImages) {
+      final item = getDownloadedSong(image.requiredBy.first) ??
+          getDownloadedParent(image.requiredBy.first);
+
+      if (item == null) {
+        // I should really use error enums when I rip this whole system out
+        throw "Failed to get item from image during blurhash migration fix!";
+      }
+
+      switch (item.runtimeType) {
+        case DownloadedSong:
+          image.id = (item as DownloadedSong).song.blurHash!;
+          break;
+        case DownloadedParent:
+          image.id = (item as DownloadedParent).item.blurHash!;
+          break;
+        default:
+          throw "Item was unexpected type! got ${item.runtimeType}. This really shouldn't happen...";
+      }
+
+      images.add(image);
+    }
+
+    await _downloadedImagesBox.clear();
+    await _downloadedImagesBox
+        .putAll(Map.fromEntries(images.map((e) => MapEntry(e.id, e))));
+
+    await _downloadedImageIdsBox.clear();
+    await _downloadedImageIdsBox.putAll(
+        Map.fromEntries(images.map((e) => MapEntry(e.downloadId, e.id))));
   }
 
   Iterable<DownloadedSong> get downloadedItems => _downloadedItemsBox.values;
