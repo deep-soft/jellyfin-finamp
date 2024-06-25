@@ -14,7 +14,7 @@ import 'jellyfin_api_helper.dart';
 part 'jellyfin_api.chopper.dart';
 
 const String defaultFields =
-    "parentId,indexNumber,songCount,childCount,providerIds,genres,tags,Etag,albumPrimaryImageTag,parentPrimaryImageItemId";
+    "ChildCount,DateCreated,DateLastMediaAdded,Etag,Genres,IndexNumber,ParentId,ProviderIds,Tags,albumPrimaryImageTag,parentPrimaryImageItemId,songCount";
 
 @ChopperApi()
 abstract class JellyfinApi extends ChopperService {
@@ -375,7 +375,6 @@ abstract class JellyfinApi extends ChopperService {
           final finampUserHelper = GetIt.instance<FinampUserHelper>();
 
           String authHeader = await getAuthHeader();
-          String? tokenHeader = jellyfinApiHelper.getTokenHeader();
 
           // If baseUrlTemp is null, use the baseUrl of the current user.
           // If baseUrlTemp is set, we're setting up a new user and should use it instead.
@@ -387,33 +386,15 @@ abstract class JellyfinApi extends ChopperService {
               pathSegments:
                   baseUri.pathSegments.followedBy(request.uri.pathSegments));
 
-          // tokenHeader will be null if the user isn't logged in.
-          // If we send a null tokenHeader while logging in, the login will always fail.
-          if (tokenHeader == null) {
-            return request.copyWith(
-              uri: baseUri,
-              headers: {
-                "Content-Type": "application/json",
-                "X-Emby-Authorization": authHeader,
-              },
-            );
-          } else {
-            return request.copyWith(
-              uri: baseUri,
-              headers: {
-                "Content-Type": "application/json",
-                "X-Emby-Authorization": authHeader,
-                "X-Emby-Token": tokenHeader,
-              },
-            );
-          }
+          return request.copyWith(
+            uri: baseUri,
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": authHeader,
+            },
+          );
         },
 
-        /// Adds X-Emby-Authentication header
-        // (Request request) async {
-        //   return request.copyWith(
-        //       headers: {"X-Emby-Authentication": await getAuthHeader()});
-        // },
         HttpAggregateLoggingInterceptor(),
       ],
     );
@@ -423,7 +404,7 @@ abstract class JellyfinApi extends ChopperService {
   }
 }
 
-/// Creates the X-Emby-Authorization header
+/// Creates the Authorization header
 Future<String> getAuthHeader() async {
   final notAsciiRegex = RegExp(r'[^\x00-\x7F]+');
 
@@ -433,6 +414,10 @@ Future<String> getAuthHeader() async {
 
   if (finampUserHelper.currentUser != null) {
     authHeader = '${authHeader}UserId="${finampUserHelper.currentUser!.id}", ';
+  }
+
+  if (finampUserHelper.currentUser?.accessToken != null) {
+    authHeader = '${authHeader}Token="${finampUserHelper.currentUser!.accessToken}", ';
   }
 
   authHeader = '${authHeader}Client="Finamp", ';
